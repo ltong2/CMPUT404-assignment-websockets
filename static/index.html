@@ -71,9 +71,9 @@ function prepEntity(entity) {
 
 function clearFrame() {
     with(context) {
-	moveTo(0,0);
-	fillStyle = "#000";
-	fillRect(0,0,W,H);
+    moveTo(0,0);
+    fillStyle = "#000";
+    fillRect(0,0,W,H);
     }
 
 }
@@ -106,25 +106,28 @@ function drawFrame() {
 // So use this code, it works well on multitouch devices as well.
 
 function getPosition(e) {
-	if ( e.targetTouches && e.targetTouches.length > 0) {
-		var touch = e.targetTouches[0];
-		var x = touch.pageX  - canvas.offsetLeft;
-		var y = touch.pageY  - canvas.offsetTop;
-		return [x,y];
-	} else {
-		var rect = e.target.getBoundingClientRect();
-		var x = e.offsetX || e.pageX - rect.left - window.scrollX;
-		var y = e.offsetY || e.pageY - rect.top  - window.scrollY;
-		var x = e.pageX  - canvas.offsetLeft;
-		var y = e.pageY  - canvas.offsetTop;
-		return [x,y];
-	}
+    if ( e.targetTouches && e.targetTouches.length > 0) {
+        var touch = e.targetTouches[0];
+        var x = touch.pageX  - canvas.offsetLeft;
+        var y = touch.pageY  - canvas.offsetTop;
+        return [x,y];
+    } else {
+        var rect = e.target.getBoundingClientRect();
+        var x = e.offsetX || e.pageX - rect.left - window.scrollX;
+        var y = e.offsetY || e.pageY - rect.top  - window.scrollY;
+        var x = e.pageX  - canvas.offsetLeft;
+        var y = e.pageY  - canvas.offsetTop;
+        return [x,y];
+    }
 }
 
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+    var temp={}
+    temp[entity]=data
+    socket.send(JSON.stringify(world))
 }
 var counter = 0;
 function addEntityWithoutName(data) {
@@ -168,7 +171,7 @@ mouse = (function() {
                 var pos = getPosition(e);
                 var x = pos[0];
                 var y = pos[1];
-	        self.clicked = 1;
+            self.clicked = 1;
                 self.callListeners(self.mousedowners,x,y,self.clicked,e);
                 //addEntityWithoutName({'x':x,'y':y,'colour':'red'});
             }
@@ -180,8 +183,8 @@ mouse = (function() {
                 var pos = getPosition(e);
                 var x = pos[0];
                 var y = pos[1];
-	        //self.poppin(x,y);
-	        self.clicked = 0;
+            //self.poppin(x,y);
+            self.clicked = 0;
                 self.selected = -1;
                 self.callListeners(self.mouseuppers,x,y,self.clicked,e);
                 //addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
@@ -191,30 +194,30 @@ mouse = (function() {
             self.lasttouch = e;                                         
             return self.mousedown(e);
         },
-	touchend: function(e) {
+    touchend: function(e) {
             var touch = (self.lasttouch)?self.lasttouch:e;
             return self.mouseup(touch);
-	},
-	mousemove: function(e) {
+    },
+    mousemove: function(e) {
             e.preventDefault();
             if (self.wasClicked(e)) {
                 var pos = getPosition(e);
                 var x = pos[0];
                 var y = pos[1];
-	        if (self.clicked != 0) {
-	            //self.squeakin(x,y);
+            if (self.clicked != 0) {
+                //self.squeakin(x,y);
                     self.callListeners(self.mousedraggers,x,y,self.clicked,e);
-	        }
+            }
                 self.callListeners(self.mousemovers,x,y,self.clicked,e);
             }            
-	},
-	touchmove: function(e) {
+    },
+    touchmove: function(e) {
             self.lasttouch = e;                                         
             return self.mousemove(e);
-	},
-		                                   
+    },
+                                           
         // Install the mouse listeners
-	mouseinstall: function() {
+    mouseinstall: function() {
             canvas.addEventListener("mousedown",  self.mousedown, false);
             canvas.addEventListener("mousemove",  self.mousemove, false);
             canvas.addEventListener("mouseup",    self.mouseup, false);
@@ -222,7 +225,7 @@ mouse = (function() {
             canvas.addEventListener("touchstart", self.touchstart, false);
             canvas.addEventListener("touchmove",  self.touchmove, false);
             canvas.addEventListener("touchend",   self.touchend, false);
-	}
+    }
     };
     self.mouseinstall();
     return self;
@@ -230,17 +233,27 @@ mouse = (function() {
 
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
+function get_random_color() {
+  function c() {
+    return Math.floor(Math.random()*256).toString(16)
+  }
+  return "#"+c()+c()+c();
+}
+function get_random_size(){
+    return Math.floor(Math.random()*50)+2
+
+}
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':get_random_color()});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'yellow'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':get_random_color(),
+                          'radius':get_random_size()});
 });
 
 
@@ -254,6 +267,15 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        var xhttp= new XMLHttpRequest();
+        xhttp.open('GET', 'http://'+host+'/world', false);
+        xhttp.send(null);
+        worldRet= JSON.parse(xhttp.responseText);
+
+
+        for (var key in worldRet){
+            world[key] = worldRet[i];
+        }
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
@@ -261,7 +283,13 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //XXX: TODO What are you going to do here?  
+            var content = JSON.parse(msg.data)
+            for (var i in content){
+                world[i] = content[i];
+                drawNextFrame();    
+            }
+                     
         } catch (e) {
             alert("socket on message: " + e);
         }

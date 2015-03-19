@@ -8,6 +8,11 @@ See requirements.org (plain-text) for a description of the project.
 Make a shared state Websockets drawing program
 
 Prereqs
+
+=======
+author: Lin Tong
+
+referance: http://stackoverflow.com/questions/1484506/random-color-generator-in-javascript
 =======
 
 pip install flask-sockets
